@@ -1,16 +1,16 @@
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
-
 @Entity()
-export class User {
+export class Item {
   @PrimaryGeneratedColumn()
   id: number;
-
   @Column()
   name: string;
-
   @Column()
-  email: string;
-
+  description: string;
   @Column()
-  password: string;
+  price: number;
+  @Column()
+  location: string;
+  @Column()
+  category: string;
 }
