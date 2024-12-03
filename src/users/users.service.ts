@@ -9,8 +9,10 @@ export class UsersService {
     @InjectRepository(User) private readonly userRepo: Repository<User>,
   ) {}
 
-  find() {
-    return this.userRepo.find();
+  find(email: string) {
+    return this.userRepo.find({
+      where: { email },
+    });
   }
 
   create(name: string, email: string, password: string) {
