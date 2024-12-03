@@ -25,4 +25,14 @@ export class User {
   logInsert() {
     console.log('User was inserted with id: ' + this.id);
   }
+
+  @AfterUpdate()
+  logUpdate() {
+    console.log('User was updated with id: ' + this.id);
+  }
+
+  @AfterRemove()
+  logRemove() {
+    console.log('User was removed with id: ' + this.id);
+  }
 }
