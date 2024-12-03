@@ -3,7 +3,7 @@ import { CreateUserDto } from 'src/users/dtos/create-user.dto';
 import { LoginUserDto } from 'src/auth/dtos/login-user.dto';
 import { AuthService } from './auth.service';
 import { UsersService } from 'src/users/users.service';
-import { Serialize } from 'src/interceptors/serialize.interceptors';
+import { Serialize } from 'src/interceptors/serialize.interceptor';
 import { UserDto } from 'src/users/dtos/user.dto';
 import { CurrentUser } from './decorators/current-user.decorator';
 
