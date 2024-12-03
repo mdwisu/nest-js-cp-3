@@ -22,11 +22,16 @@ export class UsersService {
     return this.userRepo.findOneBy({ id });
   }
 
-  // update(id: number, attrs: Partial<User>) {
-  //   return this.userRepo.update(id, attrs);
-  // }
+  async update(id: number, attrs: Partial<User>) {
+    const user = await this.findOneBy(id);
+    if (!user) {
+      throw new Error('User not found');
+    }
+    Object.assign(user, attrs);
+    return this.userRepo.save(user);
+  }
 
-  // remove(id: number) {
-  //   return this.userRepo.delete(id);
-  // }
+  remove(id: number) {
+    return this.userRepo.delete(id);
+  }
 }
