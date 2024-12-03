@@ -13,11 +13,15 @@ import { UsersService } from './users.service';
 import { UpdateClassDto } from './dtos/update-user.dto';
 import { Serialize } from 'src/interceptors/serialize.interceptors';
 import { UserDto } from './dtos/user.dto';
+import { AuthService } from './auth.service';
 
 @Controller('users')
 @Serialize(UserDto)
 export class UsersController {
-  constructor(private usersService: UsersService) {}
+  constructor(
+    private usersService: UsersService,
+    private authService: AuthService,
+  ) {}
 
   @Get('/')
   findAllUsers(@Query('email') email: string) {
@@ -42,5 +46,10 @@ export class UsersController {
   @Delete('/:id')
   removeUser(@Param('id') id: string) {
     return this.usersService.remove(+id);
+  }
+
+  @Post('/register')
+  register(@Body() body: CreateUserDto) {
+    return this.authService.register(body.name, body.email, body.password);
   }
 }
