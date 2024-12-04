@@ -12,9 +12,16 @@ describe('AuthService', () => {
   // eslint-disable-next-line @typescript-eslint/no-unused-vars
   let usersService: UsersService;
 
+  const mockUser = {
+    id: 1,
+    name: 'John Doe',
+    email: 'john@example.com',
+    password: 'hashedPassword123', // Example hashed password
+  };
+
   const fakeUsersService = {
     find: jest.fn(),
-    create: jest.fn(),
+    create: jest.fn().mockResolvedValue(mockUser),
   };
 
   beforeEach(async () => {
@@ -35,7 +42,7 @@ describe('AuthService', () => {
 
   describe('register', () => {
     it('should throw BadRequestException if email already exists', async () => {
-      fakeUsersService.find.mockResolvedValue([{ email: 'test@example.com' }]);
+      fakeUsersService.find.mockResolvedValue([mockUser]);
 
       await expect(
         service.register('John Doe', 'test@example.com', 'password'),
@@ -45,30 +52,27 @@ describe('AuthService', () => {
     it('should register a new user successfully', async () => {
       fakeUsersService.find.mockResolvedValue([]); // Ensure no user is found with the same email
 
-      // Mock password generation with a proper salt and hash structure
-      const mockSalt = 'de87fd08b9d3f74c'; // Example salt (16 hex characters, 8 bytes)
-      const mockHash =
-        'edbec6899209b9f30c9c5e4b9712e21e08c2f19d7fbfe18c386448aac4a1fe0b6d83fd06fab1e49e12c08d6e9e3065c106dfcf3479cbafc2095c0bacf2b64ae9'; // Example 64-byte hash (128 hex characters)
-      const mockHashedPassword = `${mockSalt}.${mockHash}`; // Combining salt and hash
+      const plainPassword = 'password';
+      const salt = 'de87fd08b9d3f74c'; // Example salt (16 hex characters)
+      const hash = (await scryptAsync(plainPassword, salt, 64)) as Buffer;
+      const hashedPassword = `${salt}.${hash.toString('hex')}`;
 
       // Mock the create method to return a user with the correct hashed password format
       fakeUsersService.create.mockResolvedValue({
-        id: 1,
-        name: 'John Doe',
-        email: 'john@example.com',
-        password: mockHashedPassword,
+        ...mockUser,
+        password: hashedPassword,
       });
 
       const user = await service.register(
         'John Doe',
         'john@example.com',
-        'password',
+        plainPassword,
       );
       expect(user).toEqual({
         id: 1,
         name: 'John Doe',
         email: 'john@example.com',
-        password: mockHashedPassword,
+        password: hashedPassword,
       });
 
       // Now check that the password passed to create has the expected format
@@ -83,61 +87,66 @@ describe('AuthService', () => {
     });
 
     it('should fail to create a user with existing email', async () => {
-      fakeUsersService.find.mockResolvedValue([{ email: 'test@example.com' }]);
+      fakeUsersService.find.mockResolvedValue([mockUser]);
 
       await expect(
-        service.register('John Doe', 'test@example.com', 'password'),
+        service.register('John Doe', 'john@example.com', 'password'),
       ).rejects.toThrow(new BadRequestException('Email sudah terdaftar'));
     });
-    describe('login', () => {
-      it('throws id user login with invalid email', async () => {
-        fakeUsersService.find.mockResolvedValue([]);
-        await expect(
-          service.login('test@example.com', 'password'),
-        ).rejects.toThrow(new NotFoundException('User tidak ditemukan'));
-      });
-      it('should throw BadRequestException if password is incorrect', async () => {
-        // Mock user data to simulate a user with a stored password
-        const mockUser = {
-          id: 1,
-          name: 'John Doe',
-          email: 'john@example.com',
-          password: 'hashedPassword123', // Example hashed password
-        };
+  });
+  describe('login', () => {
+    it('throws id user login with invalid email', async () => {
+      fakeUsersService.find.mockResolvedValue([]);
+      await expect(
+        service.login('nonexistent@example.com', 'password'),
+      ).rejects.toThrow(new NotFoundException('User tidak ditemukan'));
+    });
+    it('should throw BadRequestException if password is incorrect', async () => {
+      // Mock user data to simulate a user with a stored password
+      fakeUsersService.find.mockResolvedValue([mockUser]);
+      // Attempt login with the correct email but an incorrect password
+      await expect(
+        service.login('john@example.com', 'wrongPassword'),
+      ).rejects.toThrow(new BadRequestException('Password salah'));
+    });
 
-        fakeUsersService.find.mockResolvedValue([mockUser]);
+    it('should login successfully', async () => {
+      const plainPassword = 'password';
+      const salt = 'de87fd08b9d3f74c'; // Example salt
+      const hash = (await scryptAsync(plainPassword, salt, 64)) as Buffer;
+      const hashedPassword = `${salt}.${hash.toString('hex')}`;
+      console.log(hashedPassword);
+      // Ensure no users with the same email exist before registration
+      fakeUsersService.find.mockResolvedValue([]); // Simulate no users found for the email
 
-        // Attempt login with the correct email but an incorrect password
-        await expect(
-          service.login('john@example.com', 'wrongPassword'),
-        ).rejects.toThrow(new BadRequestException('Password salah'));
-      });
+      // Mock user creation to return a valid user object with the hashed password
+      const mockUser = {
+        id: 1,
+        name: 'John Doe',
+        email: 'john@example.com',
+        password: hashedPassword,
+      };
 
-      it('should login successfully', async () => {
-        // Mock user data to simulate a user with a stored password
-        const salt = 'de87fd0892f9df7b'; // Example salt
-        const plainPassword = 'hashedPassword123';
+      fakeUsersService.create.mockResolvedValue(mockUser);
 
-        // Simulate the hash process in your application (using scrypt)
-        const hash = (await scryptAsync(plainPassword, salt, 64)) as Buffer;
-        const hashedPassword = `${salt}.${hash.toString('hex')}`;
+      // Register the user with the hashed password
+      const user = await service.register(
+        'John Doe',
+        'john@example.com',
+        plainPassword,
+      );
 
-        const mockUser = {
-          id: 1,
-          name: 'John Doe',
-          email: 'john@example.com',
-          password: hashedPassword, // Example hashed password
-        };
+      // Ensure the user registration worked
+      expect(user).toEqual(mockUser);
 
-        fakeUsersService.find.mockResolvedValue([mockUser]);
+      // Now, mock the find method to return the user when logging in
+      fakeUsersService.find.mockResolvedValue([mockUser]);
 
-        // Attempt login with the correct email and password
-        const result = await service.login(
-          'john@example.com',
-          'hashedPassword123',
-        );
-        expect(result).toEqual(mockUser);
-      });
+      // Attempt login with the correct email and password
+      const result = await service.login('john@example.com', plainPassword);
+
+      // Check that the result matches the registered user
+      expect(result).toEqual(mockUser);
     });
   });
 });
