@@ -1,7 +1,13 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { UsersService } from 'src/users/users.service';
-import { BadRequestException } from '@nestjs/common';
+import { BadRequestException, NotFoundException } from '@nestjs/common';
+import { promisify } from 'util';
+import { scrypt as _scrypt } from 'crypto';
+jest.mock('crypto', () => ({
+  ...jest.requireActual('crypto'),
+  scrypt: jest.fn(),
+}));
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -84,6 +90,14 @@ describe('AuthService', () => {
       await expect(
         service.register('John Doe', 'test@example.com', 'password'),
       ).rejects.toThrow(new BadRequestException('Email sudah terdaftar'));
+    });
+    describe('login', () => {
+      it('throws id user login with invalid email', async () => {
+        mockUsersService.find.mockResolvedValue([]);
+        await expect(
+          service.login('test@example.com', 'password'),
+        ).rejects.toThrow(new NotFoundException('User tidak ditemukan'));
+      });
     });
   });
 });
