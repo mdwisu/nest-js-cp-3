@@ -14,7 +14,7 @@ export class AuthService {
   constructor(private usersService: UsersService) {}
 
   async register(name: string, email: string, password: string) {
-    // check apakaah ada user yang menggunakan email sama
+    // check apakah ada user yang menggunakan email sama
     const users = await this.usersService.find(email);
     if (users.length) {
       throw new BadRequestException('Email sudah terdaftar');
