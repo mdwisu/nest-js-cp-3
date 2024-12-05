@@ -6,7 +6,9 @@ import {
   Column,
   Entity,
   PrimaryGeneratedColumn,
+  OneToMany,
 } from 'typeorm';
+import { Item } from '../items/item.entity';
 
 @Entity()
 export class User {
@@ -22,6 +24,9 @@ export class User {
   @Column()
   @Exclude()
   password: string;
+
+  @OneToMany(() => Item, (item) => item.user)
+  items: Item[];
 
   @AfterInsert()
   logInsert() {
