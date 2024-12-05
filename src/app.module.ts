@@ -16,12 +16,13 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
       envFilePath: `.env.${process.env.NODE_ENV}`,
     }),
     TypeOrmModule.forRootAsync({
-      inject: [ConfigModule],
+      inject: [ConfigService],
       useFactory: (configService: ConfigService) => ({
         type: 'sqlite',
         database: configService.get<string>('DB_NAME'),
         entities: [__dirname + '/**/*.entity{.ts,.js}'],
         synchronize: true,
+        dropSchema: process.env.NODE_ENV === 'test',
       }),
     }),
     // TypeOrmModule.forRoot({
